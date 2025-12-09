@@ -28,51 +28,51 @@ public class FifthDayOfChristmasPart2 {
         List<String> foodData = Files.readAllLines(p)
                 .stream().toList();
 
-        List<String> rawRanges = new ArrayList<>();
-        List<Range> ranges = new ArrayList<>();
+        List<Range> ranges = parseRanges(foodData);
+        ranges.sort(Comparator.comparingLong(r -> r.min));
+        List<Range> mergedRanges = mergeRanges(ranges);
 
+        System.out.println("FreshIDCount:" + getCount(mergedRanges));
+        Instant end = Instant.now();
+        System.out.println("Took: " + Duration.between(startTime, end).toMillis() + " ms");
+    }
+
+    private static long getCount(List<Range> mergedRanges) {
+        return mergedRanges
+                .stream()
+                .mapToLong(r -> r.max - r.min + 1)
+                .sum();
+    }
+
+    static List<Range> parseRanges(List<String> foodData) {
+        List<Range> ranges = new ArrayList<>();
         for (String foodDatum: foodData) {
             if (foodDatum.isEmpty()) {
                 break;
             }
 
-            rawRanges.add(foodDatum);
+            String[] range = foodDatum.split("-");
+            ranges.add(new Range(Long.parseLong(range[0]), Long.parseLong(range[1])));
         }
+        return ranges;
+    }
 
-        rawRanges.sort(Comparator.comparingLong((String s) -> {
-            int dash = s.indexOf('-');
-            return Long.parseLong(s.substring(0, dash));
-        }));
-
-        for (String rawRange: rawRanges) {
-            System.out.println(rawRange);
-
-            String[] parsedRange = rawRange.split("-");
-            long min = Long.parseLong(parsedRange[0]);
-            long max = Long.parseLong(parsedRange[1]);
-
-            // Min is always in order currently, meaning min is always larger than ranges[last].min.
-            boolean includedInRange = false;
-            for(Range range: ranges) {
-                if (range.max >= min && max >= range.max) {
-                    range.max = max;
-                    includedInRange = true;
-                } else if (range.max > max) {
-                    includedInRange = true;
-                }
+    static List<Range> mergeRanges(List<Range> ranges) {
+        List<Range> mergedRanges = new ArrayList<>();
+        for (Range range : ranges) {
+            if (mergedRanges.isEmpty()) {
+                mergedRanges.add(range);
+                continue;
             }
-            if (!includedInRange) {
-                ranges.add(new Range(min, max));
+
+            Range last = mergedRanges.get(mergedRanges.size() - 1);
+
+            if (last.max < range.min) {
+                mergedRanges.add(range);
+            } else {
+                last.max = Math.max(last.max, range.max);
             }
         }
-
-        long count = 0;
-        for(Range range: ranges) {
-            count += range.max-range.min+1;
-            System.out.println("Range min:" + range.min + " max:" + range.max);
-        }
-        System.out.println("FreshIDCount:" + count);
-        Instant end = Instant.now();
-        System.out.println("Took: " + Duration.between(startTime, end).toMillis() + " ms");
+        return mergedRanges;
     }
 }
